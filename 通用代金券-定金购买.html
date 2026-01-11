@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>定金支付 - 支付演示</title>
+    <style>
+        /* --- 基础设置 --- */
+        :root {
+            --primary-color: #FF5000; /* 美团/淘宝橙 */
+            --bg-color: #f5f5f5;
+            --text-main: #333333;
+            --text-sub: #999999;
+            --red-color: #ff4a4a;
+            --green-color: #09BB07;
+            --border-color: #eeeeee;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .mobile-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--bg-color);
+            position: relative;
+            padding-bottom: 90px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        /* --- 顶部与卡片样式 (保持不变) --- */
+        .banner {
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%;
+            background-color: #ffe4d6;
+            background-image: url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        .banner-tag-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 44px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 100%);
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            backdrop-filter: blur(2px);
+        }
+        .banner-label {
+            color: #fff; font-size: 13px; margin-right: 8px; background: var(--primary-color); padding: 2px 6px; border-radius: 4px;
+        }
+        .banner-price { color: #fff; font-weight: bold; font-size: 18px; display: flex; align-items: baseline; }
+        .banner-price small { font-size: 12px; margin-right: 2px; }
+
+        .card { background: #fff; margin: 12px; padding: 15px; border-radius: 12px; }
+
+        .product-title { font-size: 17px; font-weight: bold; line-height: 1.5; margin-bottom: 12px; color: #222; }
+
+        .bill-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; }
+        .row-discount { color: var(--text-main); }
+        .row-discount .val { color: var(--red-color); font-weight: bold; }
+        .icon-tuan { background: #FF6600; color: #fff; font-size: 11px; padding: 1px 3px; border-radius: 2px; margin-right: 4px; }
+
+        .bill-divider { height: 1px; background: #eee; margin: 12px 0; }
+        .row-subtotal { display: flex; justify-content: space-between; align-items: baseline; }
+        .row-subtotal .label { font-size: 16px; font-weight: bold; }
+        .row-subtotal .val-group { text-align: right; }
+        .row-subtotal .price { color: var(--primary-color); font-size: 20px; font-weight: bold; }
+        .row-subtotal .saved-tip { font-size: 12px; color: var(--primary-color); margin-right: 5px; }
+
+        .details-header { font-size: 15px; font-weight: bold; margin-bottom: 10px; border-left: 3px solid var(--primary-color); padding-left: 8px; }
+        .details-content { background: #fafafa; height: 200px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px; }
+
+        /* --- 吸底栏 --- */
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 480px; height: 65px;
+            background: #fff; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .bar-left { display: flex; flex-direction: column; justify-content: center; }
+        .bar-price-row { display: flex; align-items: baseline; }
+        .bar-symbol { color: var(--primary-color); font-size: 14px; font-weight: bold; }
+        .bar-price { color: var(--primary-color); font-size: 26px; font-weight: 800; line-height: 1; margin-right: 5px;}
+        .bar-coupon-tip { font-size: 12px; color: #666; }
+        .bar-discount-info { font-size: 11px; color: var(--primary-color); margin-top: 2px; }
+        .bar-btn {
+            background: linear-gradient(90deg, #FF8000 0%, #FF5000 100%);
+            color: #fff; padding: 0 32px; height: 40px; line-height: 40px; border-radius: 20px;
+            font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 8px rgba(255, 80, 0, 0.2); user-select: none;
+        }
+        .bar-btn:active { opacity: 0.9; }
+
+        /* --- 支付浮窗 (Bottom Popup) --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 999;
+            opacity: 0; visibility: hidden; transition: all 0.3s;
+        }
+        .overlay.active { opacity: 1; visibility: visible; }
+        
+        .popup {
+            position: fixed; bottom: 0; left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%; max-width: 480px;
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+            z-index: 1000;
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .overlay.active .popup { transform: translateX(-50%) translateY(0); }
+
+        .popup-content { padding: 15px; }
+        .popup-prod { display: flex; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
+        .popup-thumb {
+            width: 60px; height: 60px; border-radius: 6px;
+            background-image: url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80');
+            background-size: cover; margin-right: 12px; flex-shrink: 0;
+        }
+        .popup-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .popup-title { font-size: 14px; color: #333; font-weight: bold; margin-bottom: 5px; }
+
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+        .label { color: #666; }
+        .value { color: #333; }
+        .value.price { font-weight: bold; font-size: 16px; color: var(--primary-color); }
+
+        .pay-method { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+        .method-left { display: flex; align-items: center; font-size: 14px; }
+        .icon-pay { width: 24px; height: 24px; margin-right: 10px; }
+        .radio-check { width: 20px; height: 20px; border: 1px solid #ccc; border-radius: 50%; position: relative; }
+        .pay-method.selected .radio-check { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .pay-method.selected .radio-check::after {
+            content: ''; position: absolute; top: 5px; left: 4px; width: 10px; height: 5px;
+            border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg);
+        }
+
+        .popup-btn-area { padding: 20px 0 10px 0; }
+        .popup-btn {
+            width: 100%; height: 44px;
+            background: linear-gradient(90deg, #FF8000 0%, #FF5000 100%);
+            color: #fff; border: none; border-radius: 22px; font-size: 16px; font-weight: bold;
+        }
+
+        /* --- 支付成功全屏弹窗 (New Style) --- */
+        .success-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #fff;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.9);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .success-modal.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
+
+        .icon-success-circle {
+            width: 80px; height: 80px;
+            background: var(--green-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(9, 187, 7, 0.2);
+        }
+        .icon-success-circle svg { width: 40px; height: 40px; fill: #fff; }
+
+        .success-title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 10px; }
+        .success-desc { font-size: 14px; color: #999; margin-bottom: 40px; }
+
+        .success-btn-group {
+            width: 80%;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .s-btn {
+            width: 100%; height: 44px; border-radius: 22px; font-size: 16px; font-weight: bold; cursor: pointer; border: none;
+        }
+        .s-btn-primary { background: var(--primary-color); color: #fff; box-shadow: 0 5px 15px rgba(255, 80, 0, 0.3); }
+        .s-btn-outline { background: #fff; color: #666; border: 1px solid #ccc; }
+
+        .edit-tip { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 4px 8px; border-radius: 4px; z-index: 200; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div class="edit-tip">点击文字/数字可修改</div>
+
+<div class="mobile-container">
+    <!-- 1. 顶部配图 -->
+    <div class="banner">
+        <div class="banner-tag-bar">
+            <span class="banner-label">权益值</span>
+            <div class="banner-price">
+                <small>¥</small>
+                <span contenteditable="true">1999</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 商品信息 -->
+    <div class="card">
+        <div class="product-title" contenteditable="true">
+            【双旦限定】心理咨询优享臻选班定金权益
+        </div>
+
+        <div class="bill-row row-discount">
+            <span>
+                <span class="icon-tuan">定金</span>
+                定金优惠
+            </span>
+            <span class="val">-¥<span contenteditable="true" id="edit-discount">1800</span></span>
+        </div>
+
+        <div class="bill-divider"></div>
+
+        <div class="row-subtotal">
+            <span class="label">小计</span>
+            <div class="val-group">
+                <span class="saved-tip">优惠 ¥<span id="sub-discount-display">1800</span></span>
+                <span class="price">¥<span contenteditable="true" id="edit-price">199</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 详情 -->
+    <div class="card">
+        <div class="details-header">权益详情</div>
+        <div class="details-content">
+            详情内容区域...
+        </div>
+    </div>
+    
+    <!-- 4. 吸底栏 -->
+    <div class="bottom-bar">
+        <div class="bar-left">
+            <div class="bar-price-row">
+                <span class="bar-symbol">¥</span>
+                <span class="bar-price" id="bar-price-display">199</span>
+                <span class="bar-coupon-tip">(券后预计)</span>
+            </div>
+            <div class="bar-discount-info">
+                总优惠 ¥<span id="bar-discount-display">1800</span>
+            </div>
+        </div>
+        <div class="bar-btn" id="submit-btn">提交订单</div>
+    </div>
+</div>
+
+<!-- 5. 支付浮窗 (Bottom Sheet) -->
+<div class="overlay" id="payment-overlay">
+    <div class="popup">
+        <div class="popup-content">
+            <div class="popup-prod">
+                <div class="popup-thumb"></div>
+                <div class="popup-info">
+                    <div class="popup-title">【双旦限定】心理咨询优享臻选班定金权益</div>
+                </div>
+            </div>
+
+            <div class="info-row">
+                <span class="label">订单编号</span>
+                <span class="value">202601248893</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="label">订单金额</span>
+                <span class="value price">¥<span id="popup-amount-sync">199</span></span>
+            </div>
+
+            <div class="pay-method selected" onclick="selectMethod(this)">
+                <div class="method-left">
+                    <svg class="icon-pay" viewBox="0 0 24 24" fill="#09BB07"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5c-2.49 0-4.5-1.57-4.5-3.5 0-1.1.66-2.09 1.69-2.73-.13-.56-.37-1.12-.66-1.59 1.25.13 2.15.59 2.75 1.09.23-.03.47-.06.72-.06 2.49 0 4.5 1.57 4.5 3.5s-2.01 3.5-4.5 3.5zm7-2.5c-.23 0-.44-.02-.66-.04l.02.04c0 1.66-1.79 3-4 3-.16 0-.32-.01-.48-.02.68.73 1.65 1.19 2.73 1.19 2.21 0 4-1.57 4-3.5 0-.82-.32-1.58-.87-2.18-.39.69-1.07 1.25-1.9 1.51z"/></svg>
+                    <span>微信支付</span>
+                </div>
+                <div class="radio-check"></div>
+            </div>
+
+            <div class="pay-method" onclick="selectMethod(this)">
+                <div class="method-left">
+                    <svg class="icon-pay" viewBox="0 0 24 24" fill="#1677FF"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7H9V5h6v2h-2v4h4v2z"/></svg>
+                    <span>支付宝支付</span>
+                </div>
+                <div class="radio-check"></div>
+            </div>
+
+            <div class="popup-btn-area">
+                <button class="popup-btn" id="real-pay-btn">立即支付 ¥<span id="btn-price-sync">199</span></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 6. 支付成功全屏弹窗 (Hidden by default) -->
+<div class="success-modal" id="success-modal">
+    <div class="icon-success-circle">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    </div>
+    <div class="success-title">支付成功</div>
+    <div class="success-desc">定金支付成功，购买商品时自动抵扣</div>
+
+    <div class="success-btn-group">
+        <button class="s-btn s-btn-primary" onclick="alert('即将跳转商品详情页...')">购买商品</button>
+        <button class="s-btn s-btn-outline" onclick="alert('即将跳转订单列表...')">订单列表</button>
+    </div>
+</div>
+
+<script>
+    // 元素获取
+    const editDiscount = document.getElementById('edit-discount');
+    const editPrice = document.getElementById('edit-price');
+    const subDiscountDisplay = document.getElementById('sub-discount-display');
+    const barPriceDisplay = document.getElementById('bar-price-display');
+    const barDiscountDisplay = document.getElementById('bar-discount-display');
+    
+    const popupAmountSync = document.getElementById('popup-amount-sync');
+    const btnPriceSync = document.getElementById('btn-price-sync');
+
+    // 1. 数据同步监听
+    editDiscount.addEventListener('input', function() {
+        const val = this.innerText;
+        subDiscountDisplay.innerText = val;
+        barDiscountDisplay.innerText = val;
+    });
+
+    editPrice.addEventListener('input', function() {
+        const val = this.innerText;
+        barPriceDisplay.innerText = val;
+        popupAmountSync.innerText = val;
+        btnPriceSync.innerText = val;
+    });
+
+    // 2. 浮窗控制
+    const submitBtn = document.getElementById('submit-btn'); // 底部栏按钮
+    const paymentOverlay = document.getElementById('payment-overlay'); // 支付浮窗
+    const realPayBtn = document.getElementById('real-pay-btn'); // 浮窗内的支付按钮
+    const successModal = document.getElementById('success-modal'); // 成功页
+
+    // 点击提交订单 -> 打开浮窗
+    submitBtn.addEventListener('click', () => {
+        paymentOverlay.classList.add('active');
+    });
+    
+    // 点击遮罩层 -> 关闭浮窗
+    paymentOverlay.addEventListener('click', (e) => {
+        if(e.target === paymentOverlay) paymentOverlay.classList.remove('active');
+    });
+
+    // 3. 点击【立即支付】-> 关闭浮窗，打开成功页
+    realPayBtn.addEventListener('click', () => {
+        // 先关闭底部浮窗
+        paymentOverlay.classList.remove('active');
+        
+        // 稍微延迟一点点显示成功页，体验更好
+        setTimeout(() => {
+            successModal.classList.add('active');
+        }, 200);
+    });
+
+    // 4. 支付方式切换
+    function selectMethod(element) {
+        document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('selected'));
+        element.classList.add('selected');
+    }
+
+    // 防止回车
+    [editDiscount, editPrice].forEach(el => {
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                el.blur();
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>商品详情 - 模式切换演示</title>
+    <style>
+        /* --- 基础设置 --- */
+        :root {
+            --primary-color: #FF5000;
+            --bg-color: #f5f5f5;
+            --text-main: #333333;
+            --text-sub: #999999;
+            --red-color: #ff4a4a;
+            --green-color: #09BB07;
+            --border-color: #eeeeee;
+            --tab-height: 50px; /* 底部Tab高度 */
+            --action-bar-height: 65px; /* 购买栏高度 */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .mobile-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--bg-color);
+            position: relative;
+            /* 底部留白 = Tab高度 + 购买栏高度 + 缓冲 */
+            padding-bottom: calc(var(--tab-height) + var(--action-bar-height) + 20px);
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            min-height: 100vh;
+        }
+
+        /* --- 视图切换控制 --- */
+        .view-section { display: none; animation: fadeIn 0.3s; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- 1. 顶部商品图 --- */
+        .banner {
+            width: 100%; height: 0; padding-bottom: 56.25%;
+            background-color: #ffe4d6;
+            background-image: url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
+            background-size: cover; background-position: center;
+        }
+
+        /* --- 卡片通用 --- */
+        .card { background: #fff; margin: 12px; padding: 15px; border-radius: 12px; }
+        .card-header { font-size: 15px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; }
+        .card-header::before { content: ''; width: 4px; height: 16px; background: var(--primary-color); margin-right: 8px; border-radius: 2px; }
+
+        /* --- 商品名称与价格 --- */
+        .product-title { font-size: 18px; font-weight: bold; line-height: 1.4; margin-bottom: 10px; color: #222; }
+        
+        .price-container { display: flex; flex-direction: column; align-items: flex-start; }
+        .price-original { color: #999; font-size: 14px; text-decoration: line-through; margin-bottom: 2px; }
+        .price-row { display: flex; align-items: baseline; color: var(--primary-color); }
+        .currency { font-size: 18px; margin-right: 2px; font-weight: bold;}
+        .price-num { font-size: 28px; font-weight: 800; line-height: 1; }
+        .price-label { font-size: 12px; color: #999; margin-left: 8px; font-weight: normal; }
+        .price-tag { font-size: 12px; color: var(--primary-color); background: #fff0e6; padding: 1px 6px; border-radius: 4px; margin-left: 8px; vertical-align: middle;}
+
+        /* --- 优惠选择区域 --- */
+        .option-group { margin-bottom: 15px; }
+        .option-group:last-child { margin-bottom: 0; }
+        .group-title { font-size: 13px; color: #666; margin-bottom: 8px; }
+        
+        .option-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f9f9f9; }
+        .option-item:last-child { border-bottom: none; }
+        
+        .opt-info { display: flex; flex-direction: column; }
+        .opt-name { font-size: 14px; color: #333; font-weight: 500; }
+        .opt-desc { font-size: 11px; color: #999; margin-top: 2px; }
+        .opt-val { color: var(--red-color); font-weight: bold; font-size: 14px; }
+
+        input[type="radio"], input[type="checkbox"] { accent-color: var(--primary-color); width: 20px; height: 20px; }
+
+        /* --- 详情 --- */
+        .details-content { background: #fafafa; height: 150px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px; }
+
+        /* --- 吸底购买栏 (Action Bar) --- */
+        .bottom-bar {
+            position: fixed; 
+            bottom: var(--tab-height); /* 抬升，给Tab留位置 */
+            left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 480px; height: var(--action-bar-height);
+            background: #fff; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100;
+        }
+        .bar-left { display: flex; flex-direction: column; justify-content: center; }
+        .bar-price-row { display: flex; align-items: baseline; }
+        .bar-symbol { color: var(--primary-color); font-size: 14px; font-weight: bold; }
+        .bar-price { color: var(--primary-color); font-size: 24px; font-weight: 800; line-height: 1; margin-right: 5px;}
+        .bar-discount-info { font-size: 11px; color: var(--primary-color); margin-top: 2px; }
+        
+        .bar-btn {
+            background: linear-gradient(90deg, #FF8000 0%, #FF5000 100%);
+            color: #fff; padding: 0 28px; height: 40px; line-height: 40px; border-radius: 20px;
+            font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 8px rgba(255, 80, 0, 0.2);
+            user-select: none;
+        }
+        .bar-btn:active { opacity: 0.9; }
+
+        /* --- 底部全局 Tab 切换栏 --- */
+        .global-tabs {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 480px; height: var(--tab-height);
+            background: #333; color: #fff;
+            display: flex; z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .tab-item {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; cursor: pointer; border-top: 2px solid transparent;
+            transition: all 0.2s; background: #333;
+        }
+        .tab-item.active {
+            background: #444; color: #fff; font-weight: bold; border-top: 2px solid var(--primary-color);
+        }
+
+        /* --- 支付浮窗 --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 2000;
+            opacity: 0; visibility: hidden; transition: all 0.3s;
+        }
+        .overlay.active { opacity: 1; visibility: visible; }
+        .popup {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+            width: 100%; max-width: 480px;
+            background: #fff; border-radius: 16px 16px 0 0; z-index: 2100;
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .overlay.active .popup { transform: translateX(-50%) translateY(0); }
+        .popup-content { padding: 15px; }
+
+        .popup-prod { display: flex; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
+        .popup-thumb {
+            width: 60px; height: 60px; border-radius: 6px;
+            background-image: url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80');
+            background-size: cover; margin-right: 12px; flex-shrink: 0;
+        }
+        .popup-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .popup-title { font-size: 14px; color: #333; font-weight: bold; }
+
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+        .label { color: #666; }
+        .value { color: #333; }
+        .value.price { font-weight: bold; font-size: 16px; color: var(--primary-color); }
+        .value.highlight { color: var(--red-color); }
+
+        .pay-method { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+        .method-left { display: flex; align-items: center; font-size: 14px; }
+        .icon-pay { width: 24px; height: 24px; margin-right: 10px; }
+        .radio-check { width: 20px; height: 20px; border: 1px solid #ccc; border-radius: 50%; position: relative; }
+        .pay-method.selected .radio-check { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .pay-method.selected .radio-check::after {
+            content: ''; position: absolute; top: 5px; left: 4px; width: 10px; height: 5px;
+            border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg);
+        }
+
+        .popup-btn-area { padding: 20px 0 10px 0; }
+        .popup-btn {
+            width: 100%; height: 44px;
+            background: linear-gradient(90deg, #FF8000 0%, #FF5000 100%);
+            color: #fff; border: none; border-radius: 22px; font-size: 16px; font-weight: bold;
+        }
+
+        /* --- 成功全屏弹窗 --- */
+        .success-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: #fff; z-index: 3000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transform: scale(0.9);
+            transition: all 0.3s;
+        }
+        .success-modal.active { opacity: 1; visibility: visible; transform: scale(1); }
+        .icon-success-circle {
+            width: 80px; height: 80px; background: var(--green-color); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(9, 187, 7, 0.2);
+        }
+        .icon-success-circle svg { width: 40px; height: 40px; fill: #fff; }
+        .success-title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 10px; }
+        .success-desc { font-size: 14px; color: #999; margin-bottom: 40px; }
+        
+        .s-btn-outline {
+            width: 200px; height: 44px; border-radius: 22px; font-size: 16px; font-weight: bold;
+            background: #fff; color: #666; border: 1px solid #ccc; cursor: pointer;
+        }
+
+        .edit-tip { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 4px 8px; border-radius: 4px; z-index: 5000; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div class="edit-tip">价格可点击修改 (双Tab独立)</div>
+
+<div class="mobile-container">
+    
+    <!-- ============================================== -->
+    <!-- 视图1：商品-没买定金 (No Deposit - nd) -->
+    <!-- ============================================== -->
+    <div id="view-nd" class="view-section active">
+        <!-- 顶部商品图 -->
+        <div class="banner"></div>
+
+        <!-- 商品信息 -->
+        <div class="card">
+            <div class="product-title">【高阶】心理咨询师实战全能班（含督导）</div>
+            <div class="price-container">
+                <div class="price-original">¥<span contenteditable="true">4780</span></div>
+                <div class="price-row">
+                    <span class="currency">¥</span>
+                    <span class="price-num" contenteditable="true" id="nd-price">2980</span>
+                    <span class="price-tag">活动价</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 权益 (仅优惠券) -->
+        <div class="card">
+            <div class="card-header">优惠权益</div>
+            <div class="option-group">
+                <div class="group-title">优惠券 (可叠加)</div>
+                <label class="option-item">
+                    <div class="opt-info"><div class="opt-name">通用抵用券</div><div class="opt-desc">有效期至 2026.12.31</div></div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="opt-val" style="margin-right:10px;">-¥300</div>
+                        <input type="checkbox" name="nd-coupon" value="300" checked onchange="calcND()">
+                    </div>
+                </label>
+                <label class="option-item">
+                    <div class="opt-info"><div class="opt-name">限时加码券</div><div class="opt-desc">直播间专属福利</div></div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="opt-val" style="margin-right:10px;">-¥100</div>
+                        <input type="checkbox" name="nd-coupon" value="100" checked onchange="calcND()">
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">商品详情</div>
+            <div class="details-content">课程大纲、师资介绍、服务保障...</div>
+        </div>
+
+        <!-- 吸底栏 ND -->
+        <div class="bottom-bar">
+            <div class="bar-left">
+                <div class="bar-price-row">
+                    <span style="font-size:12px; margin-right:2px;">实付</span>
+                    <span class="bar-symbol">¥</span>
+                    <span class="bar-price" id="nd-bar-total">2580</span>
+                </div>
+                <div class="bar-discount-info">总优惠 ¥<span id="nd-bar-discount">400</span></div>
+            </div>
+            <div class="bar-btn" onclick="openModal('nd')">提交订单</div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 视图2：商品-买了定金 (Bought Deposit - bd) -->
+    <!-- ============================================== -->
+    <div id="view-bd" class="view-section">
+        <div class="banner"></div>
+
+        <div class="card">
+            <div class="product-title">【高阶】心理咨询师实战全能班（含督导）</div>
+            <div class="price-row">
+                <span class="currency">¥</span>
+                <span class="price-num" contenteditable="true" id="bd-price">4780</span>
+                <span class="price-label">课程原价</span>
+            </div>
+        </div>
+
+        <!-- 权益 (定金+优惠券) -->
+        <div class="card">
+            <div class="card-header">优惠权益</div>
+            <!-- 定金 -->
+            <div class="option-group">
+                <div class="group-title">定金权益 (单选)</div>
+                <label class="option-item">
+                    <div class="opt-info"><div class="opt-name">¥199 定金抵扣</div><div class="opt-desc">已付199元，可抵扣 1999元</div></div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="opt-val" style="margin-right:10px;">-¥1999</div>
+                        <input type="radio" name="bd-deposit" value="1999" checked onchange="calcBD()">
+                    </div>
+                </label>
+                <label class="option-item">
+                    <div class="opt-info"><div class="opt-name">¥99 定金抵扣</div><div class="opt-desc">已付99元，可抵扣 1899元</div></div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="opt-val" style="margin-right:10px;">-¥1899</div>
+                        <input type="radio" name="bd-deposit" value="1899" onchange="calcBD()">
+                    </div>
+                </label>
+            </div>
+            <div style="border-top:1px dashed #eee; margin:10px 0;"></div>
+            <!-- 优惠券 -->
+            <div class="option-group">
+                <div class="group-title">优惠券 (可叠加)</div>
+                <label class="option-item">
+                    <div class="opt-info"><div class="opt-name">通用抵用券</div><div class="opt-desc">有效期至 2026.12.31</div></div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="opt-val" style="margin-right:10px;">-¥300</div>
+                        <input type="checkbox" name="bd-coupon" value="300" checked onchange="calcBD()">
+                    </div>
+                </label>
+                <label class="option-item">
+                    <div class="opt-info"><div class="opt-name">限时加码券</div><div class="opt-desc">直播间专属福利</div></div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="opt-val" style="margin-right:10px;">-¥100</div>
+                        <input type="checkbox" name="bd-coupon" value="100" checked onchange="calcBD()">
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">商品详情</div>
+            <div class="details-content">课程大纲、师资介绍、服务保障...</div>
+        </div>
+
+        <!-- 吸底栏 BD -->
+        <div class="bottom-bar">
+            <div class="bar-left">
+                <div class="bar-price-row">
+                    <span style="font-size:12px; margin-right:2px;">实付</span>
+                    <span class="bar-symbol">¥</span>
+                    <span class="bar-price" id="bd-bar-total">2381</span>
+                </div>
+                <div class="bar-discount-info">总优惠 ¥<span id="bd-bar-discount">2399</span></div>
+            </div>
+            <div class="bar-btn" onclick="openModal('bd')">提交订单</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ============================================== -->
+<!-- 底部全局 Tab 切换栏 -->
+<!-- ============================================== -->
+<div class="global-tabs">
+    <div class="tab-item active" id="tab-nd" onclick="switchTab('nd')">商品-没买定金</div>
+    <div class="tab-item" id="tab-bd" onclick="switchTab('bd')">商品-买了定金</div>
+</div>
+
+<!-- ============================================== -->
+<!-- 公共组件：支付浮窗 & 成功弹窗 -->
+<!-- ============================================== -->
+
+<!-- 支付浮窗 -->
+<div class="overlay" id="payment-overlay">
+    <div class="popup">
+        <div class="popup-content">
+            <div class="popup-prod">
+                <div class="popup-thumb"></div>
+                <div class="popup-info"><div class="popup-title">【高阶】心理咨询师实战全能班</div></div>
+            </div>
+
+            <div class="info-row">
+                <span class="label">商品/原价</span>
+                <span class="value">¥<span id="popup-base">--</span></span>
+            </div>
+            <div class="info-row">
+                <span class="label">优惠抵扣</span>
+                <span class="value highlight">-¥<span id="popup-discount">--</span></span>
+            </div>
+            <div class="info-row">
+                <span class="label">实付金额</span>
+                <span class="value price">¥<span id="popup-total">--</span></span>
+            </div>
+
+            <!-- 支付方式 -->
+            <div class="pay-method selected" onclick="selectMethod(this)">
+                <div class="method-left"><svg class="icon-pay" viewBox="0 0 24 24" fill="#09BB07"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5c-2.49 0-4.5-1.57-4.5-3.5 0-1.1.66-2.09 1.69-2.73-.13-.56-.37-1.12-.66-1.59 1.25.13 2.15.59 2.75 1.09.23-.03.47-.06.72-.06 2.49 0 4.5 1.57 4.5 3.5s-2.01 3.5-4.5 3.5zm7-2.5c-.23 0-.44-.02-.66-.04l.02.04c0 1.66-1.79 3-4 3-.16 0-.32-.01-.48-.02.68.73 1.65 1.19 2.73 1.19 2.21 0 4-1.57 4-3.5 0-.82-.32-1.58-.87-2.18-.39.69-1.07 1.25-1.9 1.51z"/></svg><span>微信支付</span></div>
+                <div class="radio-check"></div>
+            </div>
+            <div class="pay-method" onclick="selectMethod(this)">
+                <div class="method-left"><svg class="icon-pay" viewBox="0 0 24 24" fill="#1677FF"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7H9V5h6v2h-2v4h4v2z"/></svg><span>支付宝支付</span></div>
+                <div class="radio-check"></div>
+            </div>
+
+            <div class="popup-btn-area">
+                <button class="popup-btn" id="real-pay-btn">立即支付 ¥<span id="btn-total">--</span></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 成功弹窗 -->
+<div class="success-modal" id="success-modal">
+    <div class="icon-success-circle"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+    <div class="success-title">支付成功</div>
+    <div class="success-desc">您已成功购买课程，请尽快联系班主任</div>
+    <div class="success-btn-group">
+        <button class="s-btn-outline" onclick="alert('跳转订单列表...')">订单列表</button>
+    </div>
+</div>
+
+<script>
+    // --- Tab 切换逻辑 ---
+    function switchTab(type) {
+        // 样式切换
+        document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + type).classList.add('active');
+        
+        // 视图切换
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById('view-' + type).classList.add('active');
+    }
+
+    // --- 逻辑1: 没买定金 (ND) ---
+    function calcND() {
+        // 1. 获取售卖价
+        const el = document.getElementById('nd-price');
+        let sellPrice = parseFloat(el.innerText.replace(/[^0-9.]/g, '')) || 0;
+        
+        // 2. 优惠券
+        const checks = document.getElementsByName('nd-coupon');
+        let discount = 0;
+        checks.forEach(c => { if(c.checked) discount += parseFloat(c.value); });
+        
+        // 3. 结果
+        let final = sellPrice - discount;
+        if(final < 0) final = 0;
+
+        // 4. 更新底部
+        document.getElementById('nd-bar-total').innerText = final;
+        document.getElementById('nd-bar-discount').innerText = discount;
+        
+        // 5. 存储临时数据供弹窗使用
+        window.currentPayData = { base: sellPrice, discount: discount, total: final };
+    }
+
+    // --- 逻辑2: 买了定金 (BD) ---
+    function calcBD() {
+        // 1. 获取原价
+        const el = document.getElementById('bd-price');
+        let basePrice = parseFloat(el.innerText.replace(/[^0-9.]/g, '')) || 0;
+        
+        // 2. 定金权益
+        let depositVal = 0;
+        const radios = document.getElementsByName('bd-deposit');
+        radios.forEach(r => { if(r.checked) depositVal = parseFloat(r.value); });
+
+        // 3. 优惠券
+        let couponVal = 0;
+        const checks = document.getElementsByName('bd-coupon');
+        checks.forEach(c => { if(c.checked) couponVal += parseFloat(c.value); });
+
+        // 4. 结果
+        const totalDiscount = depositVal + couponVal;
+        let final = basePrice - totalDiscount;
+        if(final < 0) final = 0;
+
+        // 5. 更新底部
+        document.getElementById('bd-bar-total').innerText = final;
+        document.getElementById('bd-bar-discount').innerText = totalDiscount;
+
+        // 6. 存储临时数据
+        window.currentPayData = { base: basePrice, discount: totalDiscount, total: final };
+    }
+
+    // --- 监听输入修改 ---
+    document.getElementById('nd-price').addEventListener('input', calcND);
+    document.getElementById('bd-price').addEventListener('input', calcBD);
+    
+    // 初始化计算
+    calcND();
+    calcBD();
+
+    // --- 弹窗相关 ---
+    const overlay = document.getElementById('payment-overlay');
+    const successModal = document.getElementById('success-modal');
+    
+    function openModal(type) {
+        // 确保数据最新
+        if(type === 'nd') calcND();
+        if(type === 'bd') calcBD();
+        
+        // 渲染弹窗数据
+        const data = window.currentPayData;
+        document.getElementById('popup-base').innerText = data.base;
+        document.getElementById('popup-discount').innerText = data.discount;
+        document.getElementById('popup-total').innerText = data.total;
+        document.getElementById('btn-total').innerText = data.total;
+
+        overlay.classList.add('active');
+    }
+
+    // 关闭浮窗
+    overlay.addEventListener('click', (e) => {
+        if(e.target === overlay) overlay.classList.remove('active');
+    });
+
+    // 支付方式切换
+    function selectMethod(element) {
+        document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('selected'));
+        element.classList.add('selected');
+    }
+
+    // 确认支付
+    document.getElementById('real-pay-btn').addEventListener('click', () => {
+        overlay.classList.remove('active');
+        setTimeout(() => successModal.classList.add('active'), 200);
+    });
+    
+    // 防止回车
+    document.querySelectorAll('[contenteditable]').forEach(el => {
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+        });
+    });
+
+</script>
+
+</body>
+</html>

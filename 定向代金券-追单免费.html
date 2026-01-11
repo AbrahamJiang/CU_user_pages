@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>权益领取 - 免费版</title>
+    <style>
+        /* --- 基础设置 --- */
+        :root {
+            --primary-color: #FF5000; /* 美团/淘宝橙 */
+            --bg-color: #f5f5f5;
+            --text-main: #333333;
+            --text-sub: #999999;
+            --red-color: #ff4a4a;
+            --green-color: #09BB07; /* 成功绿 */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* 模拟手机容器 */
+        .mobile-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--bg-color);
+            position: relative;
+            padding-bottom: 90px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        /* --- 1. 顶部商品配图 --- */
+        .banner {
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%;
+            background-color: #ffe4d6;
+            background-image: url('https://images.unsplash.com/photo-1607082349566-187342175e2f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'); /* 换了一张更像礼券的图 */
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        .banner-tag-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 44px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 100%);
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            backdrop-filter: blur(2px);
+        }
+        .banner-label {
+            color: #fff;
+            font-size: 13px;
+            margin-right: 8px;
+            background: var(--primary-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .banner-price {
+            color: #fff;
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            align-items: baseline;
+        }
+        .banner-price small { font-size: 12px; margin-right: 2px; }
+
+        /* --- 卡片样式 --- */
+        .card {
+            background: #fff;
+            margin: 12px;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .product-title {
+            font-size: 17px;
+            font-weight: bold;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            color: #222;
+        }
+
+        .bill-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .row-discount { color: var(--text-main); }
+        .row-discount .val { color: var(--red-color); font-weight: bold; }
+        .icon-tag {
+            background: #ff4a4a; /* 红色标签 */
+            color: #fff;
+            font-size: 11px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            margin-right: 4px;
+        }
+
+        .bill-divider {
+            height: 1px;
+            background: #eee;
+            margin: 12px 0;
+        }
+        .row-subtotal {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .row-subtotal .label { font-size: 16px; font-weight: bold; }
+        .row-subtotal .val-group { text-align: right; }
+        .row-subtotal .price {
+            color: var(--primary-color);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .row-subtotal .saved-tip {
+            font-size: 12px;
+            color: var(--primary-color);
+            margin-right: 5px;
+        }
+
+        /* --- 详情 --- */
+        .details-header {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--primary-color);
+            padding-left: 8px;
+        }
+        .details-content {
+            background: #fafafa;
+            height: 200px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* --- 吸底栏 --- */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            height: 65px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .bar-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .bar-price-row { display: flex; align-items: baseline; }
+        .bar-symbol { color: var(--primary-color); font-size: 14px; font-weight: bold; }
+        .bar-price { color: var(--primary-color); font-size: 26px; font-weight: 800; line-height: 1; margin-right: 5px;}
+        .bar-coupon-tip { font-size: 12px; color: #666; }
+        .bar-discount-info { font-size: 11px; color: var(--primary-color); margin-top: 2px; }
+
+        /* 免费领取按钮样式 */
+        .bar-btn {
+            background: linear-gradient(90deg, #ff5e5e 0%, #ff4a4a 100%); /* 改为偏红的颜色，强调领取 */
+            color: #fff;
+            padding: 0 32px;
+            height: 40px;
+            line-height: 40px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(255, 74, 74, 0.2);
+            user-select: none;
+        }
+        .bar-btn:active { opacity: 0.9; }
+
+        /* --- 全屏成功弹窗 (New) --- */
+        .success-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #fff;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.9);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .success-modal.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
+
+        .icon-success-circle {
+            width: 80px; height: 80px;
+            background: var(--green-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(9, 187, 7, 0.2);
+        }
+        .icon-success-circle svg { width: 40px; height: 40px; fill: #fff; }
+
+        .success-title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 10px; }
+        .success-desc { font-size: 14px; color: #999; margin-bottom: 40px; }
+
+        .success-btn-group {
+            width: 80%;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .s-btn {
+            width: 100%;
+            height: 44px;
+            border-radius: 22px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .s-btn-primary {
+            background: var(--primary-color);
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(255, 80, 0, 0.3);
+        }
+        
+        .s-btn-outline {
+            background: #fff;
+            color: #666;
+            border: 1px solid #ccc;
+        }
+
+        /* 提示 */
+        .edit-tip {
+            position: fixed; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.6); color: #fff;
+            font-size: 10px; padding: 4px 8px;
+            border-radius: 4px; z-index: 200; pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="edit-tip">可编辑数字预览效果</div>
+
+<div class="mobile-container">
+    <!-- 1. 顶部配图 -->
+    <div class="banner">
+        <div class="banner-tag-bar">
+            <span class="banner-label">权益值</span>
+            <div class="banner-price">
+                <small>¥</small>
+                <!-- 修改1: 权益值 300 -->
+                <span contenteditable="true">300</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 商品信息卡片 -->
+    <div class="card">
+        <div class="product-title" contenteditable="true">
+            【限时福利】VIP课程专属抵用券
+        </div>
+
+        <!-- 修改2: 专属抵扣 -->
+        <div class="bill-row row-discount">
+            <span>
+                <span class="icon-tag">抵用</span>
+                专属抵扣
+            </span>
+            <span class="val">-¥<span contenteditable="true" id="edit-discount">300</span></span>
+        </div>
+
+        <div class="bill-divider"></div>
+
+        <div class="row-subtotal">
+            <span class="label">小计</span>
+            <div class="val-group">
+                <span class="saved-tip">已抵扣 ¥<span id="sub-discount-display">300</span></span>
+                <!-- 默认为 0 元 -->
+                <span class="price">¥<span contenteditable="true" id="edit-price">0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 详情 -->
+    <div class="card">
+        <div class="details-header">权益详情</div>
+        <div class="details-content">
+            详情内容区域...
+        </div>
+    </div>
+    
+    <!-- 4. 吸底栏 -->
+    <div class="bottom-bar">
+        <div class="bar-left">
+            <div class="bar-price-row">
+                <span class="bar-symbol">¥</span>
+                <span class="bar-price" id="bar-price-display">0</span>
+                <span class="bar-coupon-tip">(免费权益)</span>
+            </div>
+            <div class="bar-discount-info">
+                总优惠 ¥<span id="bar-discount-display">300</span>
+            </div>
+        </div>
+        
+        <!-- 修改3: 免费领取 -->
+        <div class="bar-btn" id="submit-btn">免费领取</div>
+    </div>
+</div>
+
+<!-- 修改4: 全屏成功弹窗 -->
+<div class="success-modal" id="success-modal">
+    <div class="icon-success-circle">
+        <!-- 勾号 SVG -->
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    </div>
+    <div class="success-title">领取成功</div>
+    <div class="success-desc">权益已发放至您的账户，购买商品时自动抵扣</div>
+
+    <div class="success-btn-group">
+        <button class="s-btn s-btn-primary" onclick="alert('跳转商品详情页...')">购买商品</button>
+        <button class="s-btn s-btn-outline" onclick="alert('跳转订单列表...')">订单列表</button>
+    </div>
+</div>
+
+<script>
+    // 元素获取
+    const editDiscount = document.getElementById('edit-discount');
+    const editPrice = document.getElementById('edit-price');
+    
+    // 需要同步的显示元素
+    const subDiscountDisplay = document.getElementById('sub-discount-display');
+    const barPriceDisplay = document.getElementById('bar-price-display');
+    const barDiscountDisplay = document.getElementById('bar-discount-display');
+    
+    // 弹窗元素
+    const btn = document.getElementById('submit-btn');
+    const successModal = document.getElementById('success-modal');
+
+    // 1. 监听【优惠金额】修改
+    editDiscount.addEventListener('input', function() {
+        const val = this.innerText;
+        subDiscountDisplay.innerText = val;
+        barDiscountDisplay.innerText = val;
+    });
+
+    // 2. 监听【小计金额】修改 (虽然免费通常是0，但保留可编辑性)
+    editPrice.addEventListener('input', function() {
+        const val = this.innerText;
+        barPriceDisplay.innerText = val;
+    });
+
+    // 3. 点击领取 -> 全屏展示成功
+    btn.addEventListener('click', () => {
+        successModal.classList.add('active');
+    });
+
+    // (可选) 点击全屏空白处关闭，或者只能点按钮跳转
+    // 这里为了演示方便，保留点击背景关闭功能
+    successModal.addEventListener('click', (e) => {
+        if(e.target === successModal) {
+            successModal.classList.remove('active');
+        }
+    });
+
+    // 防止回车
+    [editDiscount, editPrice].forEach(el => {
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                el.blur();
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
